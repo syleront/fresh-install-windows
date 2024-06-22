@@ -1,6 +1,6 @@
 # AIO fresh-install script
 
-I'm tired of configuring everything again every time after reinstalling Windows - installing edits, necessary programs, disabling elements I don't need, and so on. Therefore, it was decided to automate most of the steps that are required after a fresh installation of Windows.
+I'm tired of configuring everything again every time after reinstalling Windows - installing necessary programs, disabling elements I don't need, and so on. Therefore, it was decided to automate most of the steps that are required after a fresh installation of Windows.
 
 ## Disclaimer
 
