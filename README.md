@@ -14,6 +14,8 @@ This script was created for personal use, and I take no responsibility for the r
 
 ## Available flags
 
+You can configure the script for yourself by editing `config.psd1`
+
 * `-h` - print available flags
 * `-all` - set all flags below to true
 * `-moveLibraryFolders` - moves **configured** libraries from `%USERPROFILE%` to the  **configured** target folder
