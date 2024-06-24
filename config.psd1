@@ -3,6 +3,11 @@
   libraryFoldersTarget     = "F:/Windows Libraries/" # Root directory for Libraries below
   libraryFoldersListToMove = @("Downloads", "Documents", "Music", "Pictures", "Saved Games", "Videos")
 
+  # Paths you can change
+  startupPath              = "./startup"
+  appdataPath              = "./appdata"
+  officeConfigPath         = "./office.xml"
+
   # Automatically downloads and installs all Visual C++ Redists
   redistInstallVcRedist    = $true
 
@@ -38,7 +43,8 @@
     "KDE.KDEConnect",
     "VideoLAN.VLC",
     "WireGuard.WireGuard",
-    "HermannSchinagl.LinkShellExtension"
+    "HermannSchinagl.LinkShellExtension",
+    "Guru3D.Afterburner"
   )
 
   # Choco packages, chocolatey will be installed automatically
@@ -51,7 +57,8 @@
   # List of programs that should be pinned to start menu
   pinToStartList           = @(
     "P:\Programs\Telegram\Telegram.exe",
-    "P:\Programs\obs-studio\bin\64bit\obs64.exe"
+    "P:\Programs\obs-studio\bin\64bit\obs64.exe",
+    "P:\Programs\Steam\steam.exe"
   )
 
   # List of programs that should be pinned to taskbar
@@ -95,5 +102,14 @@
     "Microsoft.WindowsFeedbackHub",
     "Microsoft.549981C3F5F10"
   )
-}
 
+  # Custom symlinks
+  # original = folder/file to replace by simlink
+  # link = folder/file that should be dropped to `original` as symlink
+  symlinks                 = @(
+    @{
+      original = "C:\Program Files (x86)\MSI Afterburner\Porfiles"
+      link     = "P:\Data\msi-afterburner-profiles"
+    }
+  )
+}

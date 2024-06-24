@@ -12,6 +12,14 @@ This script was created for personal use, and I take no responsibility for the r
 * `winget` (should be installed by default)
 * Run the script with administrative privileges. I have not tested it using the default user.
 
+## Usage
+
+Run it through powershell (or Windows Terminal which uses ps) like below:
+
+```powershell
+./all-in-one-setup.ps1 -installRedist -startup -appdata
+```
+
 ## Available flags
 
 You can configure the script for yourself by editing `config.psd1`
@@ -32,15 +40,24 @@ You can configure the script for yourself by editing `config.psd1`
   * `config -> chocoPackages`
 * `-chromeAsDefault` - set chrome as default browser
 * `-wsl` - install Windows Susbsystem for Linux and set default version to 2
+* `-office` - install MS office configured in `office.xml` (create your config [here](https://config.office.com/deploymentsettings))
+  * `config -> officeConfigPath`
+* `-ssh` - enable SSH server
+* `-rdp` - enable RDP
 * `-pinPrograms` - pin your **configured** programs to taskbar/start menu
   * `config -> pinToStartList`
   * `config -> pinToTaskbarList`
 * `-powercfg` - apply powercfg props
   * `config -> powerCfgSettings`
 * `-startup` - copy shortcuts from `./startup` to `shell:startup`
+  * `config -> startupPath`
 * `-appdata` - create symlinks for AppData folders located in `./appdata/Roaming` and `./appdata/Local`
+  * `config -> appdataPath`
   * > **HOW IT WORKS:** For example, if you place a folder named `obs-studio` in the `appdata/Roaming` directory, then if there is already a folder with the same name in the `%APPDATA%` directory, it ***will be removed*** and a symbolic link will be created to the `./appdata/Roaming/obs-studio`, so the final result will be `%APPDATA%/obs-studio` -> `./appdata/Roaming/obs-studio`.
+* `-customSymlinks`
+  * `config -> symlinks`
 * `-activate` - activate Windows using the HWID method ([source](https://bitbucket.org/WindowsAddict/microsoft-activation-scripts/))
+* `-activateOffice` - activate MS office using Ohook method ([source](https://bitbucket.org/WindowsAddict/microsoft-activation-scripts/))
 * `-setExplorerSettings` - set explorer settings through registry
   * `config -> explorerSettings`
 * `-disableDefender` - disable windows defender using `dControl`
@@ -52,6 +69,7 @@ You can configure the script for yourself by editing `config.psd1`
 * `-uninstallOneDrive` - uninstall the OneDrive app and remove from explorer
 * `-uninstallUwpApps` - uninstall UWP apps
   * `config -> uwpUninstallList`
+* `-custom` - runs your `custom.ps1` script
 
 ## Credits
 

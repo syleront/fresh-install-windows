@@ -1,24 +1,30 @@
 param (
-  [switch]$all,                             # Set all to true
+  [switch]$all, # Set all to true
   [switch]$moveLibraryFolders = $all,       
-  [switch]$installRedist = $all,            # config -> redistInstallVcRedist, config -> redistWingetPackages
-  [switch]$installDevTools = $all,          # config -> devToolsWingetPackages
-  [switch]$installOther = $all,             # config -> otherWingetPackages
-  [switch]$installChocoExtras = $all,       # config -> chocoPackages
-  [switch]$chromeAsDefault = $all,          # sets chrome as default
-  [switch]$wsl = $all,                      # install Windows Susbsystem for Linux
-  [switch]$pinPrograms = $all,              # pin programs to taskbar/start menu | config -> pinToStartList, config -> pinToTaskbarList
-  [switch]$powercfg = $all,                 # apply powercfg props | config -> powerCfgSettings
-  [switch]$startup = $all,                  # copy shortcuts from `./startup` to `shell:startup`
-  [switch]$appdata = $all,                  # create symlinks for AppData folders placed in ./appdata/Roaming and ./appdata/Local
-  [switch]$activate = $all,                 # activate windows using HWID
-  [switch]$setExplorerSettings = $all,      # set explorer settings through registry | config -> explorerSettings
-  [switch]$disableDefender = $all,          # disable windows defender using dControl
-  [switch]$disableServices = $all,          # disable selected services (from config)
-  [switch]$disableWin11Context = $all,      # disable new Windows 11 context menu
+  [switch]$installRedist = $all, # config -> redistInstallVcRedist, config -> redistWingetPackages
+  [switch]$installDevTools = $all, # config -> devToolsWingetPackages
+  [switch]$installOther = $all, # config -> otherWingetPackages
+  [switch]$installChocoExtras = $all, # config -> chocoPackages
+  [switch]$chromeAsDefault = $all, # sets chrome as default
+  [switch]$wsl = $all, # install Windows Susbsystem for Linux
+  [switch]$ssh = $all, # enable SSH server
+  [switch]$rdp = $all, # enable RDP
+  [switch]$pinPrograms = $all, # pin programs to taskbar/start menu | config -> pinToStartList, config -> pinToTaskbarList
+  [switch]$powercfg = $all, # apply powercfg props | config -> powerCfgSettings
+  [switch]$startup = $all, # copy shortcuts from `./startup` to `shell:startup`
+  [switch]$appdata = $all, # create symlinks for AppData folders placed in ./appdata/Roaming and ./appdata/Local
+  [switch]$customSymlinks = $all, # custom symlinks | config -> symlinks
+  [switch]$activate = $all, # activate windows using HWID
+  [switch]$office = $all, # install MS office using config.xml
+  [switch]$activateOffice = $all, # activate MS office
+  [switch]$setExplorerSettings = $all, # set explorer settings through registry | config -> explorerSettings
+  [switch]$disableDefender = $all, # disable windows defender using dControl
+  [switch]$disableServices = $all, # disable selected services (from config)
+  [switch]$disableWin11Context = $all, # disable new Windows 11 context menu
   [switch]$disableRecentsInExplorer = $all, # disable recent folders/docs/files in explorer
-  [switch]$uninstallOneDrive = $all,        # uninstall OneDrive app and remove from explorer
-  [switch]$uninstallUwpApps = $all,         # uninstall uwp apps (from config)
+  [switch]$uninstallOneDrive = $all, # uninstall OneDrive app and remove from explorer
+  [switch]$uninstallUwpApps = $all, # uninstall uwp apps (from config)
+  [switch]$custom = $all, # run custom.ps1
   [switch]$h
 )
 
@@ -27,12 +33,15 @@ if ($h) {
   return
 }
 
+$customScript = "./custom.ps1"
+$config = Import-PowerShellDataFile -Path .\config.psd1
+
 $folders = @{
   lib      = "./_lib"
   packages = "./_packages"
   temp     = "./tmp"
-  startup  = "./startup"
-  appdata  = "./appdata"
+  startup  = $config.startupPath
+  appdata  = $config.appdataPath
 }
 
 $packages = @{
@@ -42,14 +51,26 @@ $packages = @{
   dControl          = Join-Path $folders.packages "so7036c.rar"
 }
 
-$config = Import-PowerShellDataFile -Path .\config.psd1
+$urls = @{
+  officeDeploymentTool = "https://officecdn.microsoft.com/pr/wsus/setup.exe"
+  windowsActScript     = "https://bitbucket.org/WindowsAddict/microsoft-activation-scripts/raw/master/MAS/Separate-Files-Version/Activators/HWID_Activation.cmd"
+  officeActScript      = "https://bitbucket.org/WindowsAddict/microsoft-activation-scripts/raw/master/MAS/Separate-Files-Version/Activators/Ohook_Activation_AIO.cmd"
+}
+
 Import-Module -Name (Join-Path $folders.lib "Get-VcRedist.ps1") -Force
 Import-Module -Name (Join-Path $folders.lib "KnownFolderPathPS5.ps1") -Force
 Import-Module -Name (Join-Path $folders.lib "Set-SymbolicLinksForFolders.ps1") -Force
 
+# Remove old temp folder if exists & create again
+if (Test-Path $folders.temp) {
+  Remove-Item -Recurse $folders.temp
+}
+
+New-Item -ItemType Directory -Path $folders.temp > $null
+
 # == Move library folders ==
 if ($moveLibraryFolders) {
-  Write-Host "Set library folders"
+  Write-Output "Set library folders"
   foreach ($library in $config.libraryFoldersListToMove) {
     Set-KnownFolderPathWrapper $library (Join-Path $config.libraryFoldersTarget $library)
   }
@@ -57,7 +78,7 @@ if ($moveLibraryFolders) {
 
 # == Install redists ==
 if ($installRedist) {
-  Write-Host "Installing redists"
+  Write-Output "Installing redists"
 
   if ($config.redistInstallVcRedist) {
     $outFile = Join-Path $folders.temp "vcredist.zip"
@@ -79,7 +100,7 @@ if ($installRedist) {
 
 # == Install devtools ==
 if ($installDevTools) {
-  Write-Host "Installing dev tools"
+  Write-Output "Installing dev tools"
   foreach ($package in $config.devToolsWingetPackages) {
     winget install $package
   }
@@ -87,7 +108,7 @@ if ($installDevTools) {
 
 # == Install other packages ==
 if ($installOther) {
-  Write-Host "Installing other packages"
+  Write-Output "Installing other packages"
   foreach ($package in $config.otherWingetPackages) {
     winget install $package
   }
@@ -95,7 +116,7 @@ if ($installOther) {
 
 # == Install packages from choco ==
 if ($installChocoExtras) {
-  Write-Host "Installing extras from choco"
+  Write-Output "Installing extras from choco"
   winget install Chocolatey.Chocolatey
   foreach ($package in $config.chocoPackages) {
     choco install $package -y
@@ -105,13 +126,13 @@ if ($installChocoExtras) {
 # == Set default browser ==
 if ($chromeAsDefault) {
   # https://kolbi.cz/blog/2017/11/10/setdefaultbrowser-set-the-default-browser-per-user-on-windows-10-and-server-2016-build-1607/
-  Write-Host "Set chrome as default"
+  Write-Output "Set chrome as default"
   Start-Process (Join-Path $folders.packages "SetDefaultBrowser.exe") "chrome" -Wait
 }
 
 # == Pin programs to start and taskbar ==
 if ($pinPrograms) {
-  Write-Host "Pin programs"
+  Write-Output "Pin programs"
 
   foreach ($item in $config.pinToStartList) {
     if (Test-Path $item) {
@@ -147,17 +168,32 @@ if ($wsl) {
   wsl --set-default-version 2
 }
 
+# == SSH server ==
+if ($ssh) {
+  Write-Output "Enable SSH server"
+  Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
+  Start-Service sshd
+  Set-Service -Name sshd -StartupType 'Automatic'
+}
+
+# == RDP ==
+if ($rdp) {
+  Write-Output "Enable RDP"
+  Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name 'fDenyTSConnections' -Value 0
+  Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+}
+
 # == Defender ==
 if ($disableDefender) {
   $agreement = $false
 
   $userInput = Read-Host "It's necessary to disable Windows Defender real-time protection. OK? [Y/ctrl+c]"
   if ($userInput -eq '' -Or $userInput -eq 'y' -Or $userInput -eq 'Y') {
-    Write-Host "Disable Real-Time protection in the defender settings, and then the script will automatically continue execution."
+    Write-Output "Disable Real-Time protection in the defender settings, and then the script will automatically continue execution."
     $agreement = $true
   }
   else {
-    Write-Host "Disabling the defender has been aborted."
+    Write-Output "Disabling the defender has been aborted."
   }
   
   if ($agreement) {
@@ -179,7 +215,7 @@ if ($disableDefender) {
     & $packages._7z x -o"$dConOut" -psordum "$archive" -y > $null
 
     # Start, wait for the user to close it, remove unpacked folder
-    Write-Host "Disable defender and close dControl"
+    Write-Output "Disable defender and close dControl"
     Start-Process -FilePath $executable -Wait
     Remove-Item -Recurse -Path $dConOut
   }
@@ -193,18 +229,56 @@ if ($startup) {
 
 # == Link AppData folders ==
 if ($appdata) {
-  Write-Host "Linking AppData folders"
-  Set-SymbolicLinksForFolders -From (Join-Path $folders.appdata "Roaming") -To $env:APPDATA > $null
-  Set-SymbolicLinksForFolders -From (Join-Path $folders.appdata "Local") -To $env:LOCALAPPDATA > $null
+  Write-Output "Linking AppData folders"
+  Set-SymbolicLinksForFolders -From (Join-Path $folders.appdata "Roaming") -To $env:APPDATA
+  Set-SymbolicLinksForFolders -From (Join-Path $folders.appdata "Local") -To $env:LOCALAPPDATA
+  Set-SymbolicLinksForFolders -From (Join-Path $folders.appdata "LocalLow") -To (Join-Path $env:USERPROFILE "AppData/LocalLow")
 }
 
 # == Activate Windows ==
 if ($activate) {
-  Write-Host "Activating Windows using HWID"
+  Write-Output "Activating Windows using HWID"
   $activator = Join-Path $folders.temp activate-hwid.cmd
-  $url = "https://bitbucket.org/WindowsAddict/microsoft-activation-scripts/raw/master/MAS/Separate-Files-Version/Activators/HWID_Activation.cmd"
-  Invoke-WebRequest -Uri $url -OutFile $activator > $null
+  Invoke-WebRequest -Uri $urls.windowsActScript -OutFile $activator > $null
   Start-Process $activator -Wait
+  Remove-Item $activator > $null
+}
+
+# == Install MS Office ==
+if ($office) {
+  Write-Output "Installing MS office"
+
+  if (Test-Path $config.officeConfigPath) {
+    # Download office deployment tool
+    $officeExe = Join-Path $folders.temp office.exe
+    Invoke-WebRequest -Uri $urls.officeDeploymentTool -OutFile $officeExe > $null
+
+    # Bypass RU geoblock
+    $registryPath = "HKCU:\Software\Microsoft\Office\16.0\Common\ExperimentConfigs\Ecs"
+    $registryValue = (Get-ItemProperty -Path $registryPath -Name "CountryCode" -ErrorAction SilentlyContinue)."CountryCode"
+
+    if ($registryValue -eq "std::wstring|RU") {
+      reg add "HKCU\Software\Microsoft\Office\16.0\Common\ExperimentConfigs\Ecs" /v "CountryCode" /t REG_SZ /d "std::wstring|US" /f
+    }
+
+    # Install using config
+    Start-Process $officeExe -ArgumentList "/configure $($config.officeConfigPath)" -Wait
+    Remove-Item $officeExe > $null
+
+    if ($registryValue -eq "RU") {
+      reg add "HKCU\Software\Microsoft\Office\16.0\Common\ExperimentConfigs\Ecs" /v "CountryCode" /t REG_SZ /d "std::wstring|RU" /f
+    }
+  }
+  else {
+    Write-Warning "Office config not found"
+  }
+}
+
+if ($activateOffice) {
+  Write-Output "Activating office"
+  $activator = Join-Path $folders.temp activate-office.cmd
+  Invoke-WebRequest -Uri $urls.officeActScript -OutFile $activator > $null
+  Start-Process $activator -ArgumentList "/Ohook" -Wait
   Remove-Item $activator > $null
 }
 
@@ -219,7 +293,7 @@ if ($disableServices) {
 if ($disableWin11Context) {
   $isWin11 = (Get-WmiObject Win32_OperatingSystem).Caption -Match "Windows 11"
   if ($isWin11) {
-    Write-Host "Disable new context menu"
+    Write-Output "Disable new context menu"
     reg.exe add "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /f /ve
   }
   else {
@@ -229,7 +303,7 @@ if ($disableWin11Context) {
 
 # == Disable recent folders/files/documents in explorer ==
 if ($disableRecentsInExplorer) {
-  Write-Host "Disable recents in explorer"
+  Write-Output "Disable recents in explorer"
   Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "Start_TrackDocs" -Value 0
   Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" -Name "ShowRecent" -Value 0
   Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" -Name "ShowFrequent" -Value 0
@@ -249,10 +323,10 @@ if ($uninstallOneDrive) {
 
   # Uninstall OneDrive
   if (Test-Path "$env:SYSTEMROOT\System32\OneDriveSetup.exe") {
-    & "$env:SYSTEMROOT\System32\OneDriveSetup.exe" /uninstall
+    Start-Process "$env:SYSTEMROOT\System32\OneDriveSetup.exe" -ArgumentList "/uninstall" -Wait
   }
   elseif (Test-Path "$env:SYSTEMROOT\SysWOW64\OneDriveSetup.exe") {
-    & "$env:SYSTEMROOT\SysWOW64\OneDriveSetup.exe" /uninstall
+    Start-Process "$env:SYSTEMROOT\SysWOW64\OneDriveSetup.exe" -ArgumentList "/uninstall" -Wait
   }
 
   # Remove OneDrive folders and files
@@ -268,11 +342,26 @@ if ($uninstallOneDrive) {
   }
 }
 
-# == Uninstall some unnecessary default apps
+# == Uninstall some unnecessary default apps ==
 if ($uninstallUwpApps) {
   foreach ($app in $config.uwpUninstallList) {
     Get-AppxPackage -AllUsers $app | Remove-AppxPackage
   }
+}
+
+# == Create custom symlinks ==
+if ($customSymlinks) {
+  Write-Output "Creating custom symlinks"
+  foreach ($item in $config.symlinks) {
+    $path = Split-Path -Path $item.original -Parent
+    New-DirectoryForUser $path
+    Set-SymbolicLink -Source $item.link -DropTo $item.original
+  }
+}
+
+# == Execute custom script ==
+if ($custom) {
+  Start-Process $customScript -Wait
 }
 
 # == Restart explorer if needed ==
@@ -292,12 +381,12 @@ if ($wsl) {
       break
     }
     else {
-      Write-Host "Enter y or n"
+      Write-Output "Enter y or n"
     }
   }
 }
 
-# == Temp folder cleanup
+# == Temp folder cleanup ==
 if (Test-Path $folders.temp) {
   Remove-Item -Recurse $folders.temp > $null
 }
