@@ -1,11 +1,11 @@
 @{
   # Library folders that should be mapped 
-  libraryFoldersTarget     = "F:/Windows Libraries/" # Root directory for Libraries below
+  libraryFoldersTarget     = "D:/Libraries/" # Root directory for Libraries below
   libraryFoldersListToMove = @("Downloads", "Documents", "Music", "Pictures", "Saved Games", "Videos")
 
   # Paths you can change
   startupPath              = "./startup"
-  appdataPath              = "./appdata"
+  appdataPath              = "./startup"
   officeConfigPath         = "./office.xml"
 
   # Automatically downloads and installs all Visual C++ Redists
@@ -32,19 +32,7 @@
   otherWingetPackages      = $(
     "7Zip.7Zip",
     "Gyan.FFmpeg",
-    "Google.Chrome",
-    "Mozilla.Firefox",
-    "Discord.Discord",
-    "Spotify.Spotify",
-    "Obsidian.Obsidian",
-    "Nextcloud.NextcloudDesktop",
-    "QL-Win.QuickLook",
-    "Flameshot.Flameshot",
-    "KDE.KDEConnect",
-    "VideoLAN.VLC",
-    "WireGuard.WireGuard",
-    "HermannSchinagl.LinkShellExtension",
-    "Guru3D.Afterburner"
+    "Google.Chrome"
   )
 
   # Choco packages, chocolatey will be installed automatically
@@ -56,16 +44,14 @@
 
   # List of programs that should be pinned to start menu
   pinToStartList           = @(
-    "P:\Programs\Telegram\Telegram.exe",
-    "P:\Programs\obs-studio\bin\64bit\obs64.exe",
-    "P:\Programs\Steam\steam.exe"
+    "D:\Portable\Telegram\Telegram.exe",
+    "D:\Portable\obs-studio\bin\64bit\obs64.exe"
   )
 
   # List of programs that should be pinned to taskbar
   pinToTaskbarList         = @(
     "C:\Program Files\Google\Chrome\Application\chrome.exe",
-    "P:\Programs\Visual Studio Code\Code.exe",
-    "P:\Programs\Sublime Text 4\sublime_text.exe"
+    "D:\Portable\Visual Studio Code\Code.exe"
   )
 
   # View available props here under `/x setting value` https://ss64.com/nt/powercfg.html
@@ -81,26 +67,22 @@
 
   # Explorer settings, sets registry keys in `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced`
   explorerSettings         = @{
-    "TaskbarGlomLevel"   = 2 # 0 - combine when taskbar is full, 1 - always combine, 2 - never combine
-    "MMTaskbarGlomLevel" = 2 # same but for other monitors
+    "TaskbarGlomLevel"   = 1 # 0 - combine when taskbar is full, 1 - always combine, 2 - never combine
+    "MMTaskbarGlomLevel" = 1 # same but for other monitors
     "TaskbarSmallIcons"  = 0 # 0 - large icons, 1 - small icons
     "TaskbarLockAll"     = 1 # 0 - unlock the taskbar, 1 - lock the taskbar
-    "TaskbarDa"          = 0 # 0 - remove widgets from taskbar, 1 - add widgets to taskbar
+    "TaskbarDa"          = 1 # 0 - remove widgets from taskbar, 1 - add widgets to taskbar
     "TaskbarSd"          = 0 # 0 - disable show desktop button, 1 - enable show desktop button
-    "TaskbarAl"          = 0 # 0 - icons to left, 1 - icons to center
-    "MMTaskbarMode"      = 2 # 0 - show taskbar icons on all displays, 1 - show all on main display and display where window is opened, 2 - only where window is opened
-    "UseCompactMode"     = 1 # 0 - big paddings in explorer, 1 - classic paddings from win 7/8/10 etc.
-    "ShowTaskViewButton" = 0
-    "ShowInfoTip"        = 0
+    "TaskbarAl"          = 1 # 0 - icons to left, 1 - icons to center
+    "MMTaskbarMode"      = 0 # 0 - show taskbar icons on all displays, 1 - show all on main display and display where window is opened, 2 - only where window is opened
+    "UseCompactMode"     = 0 # 0 - big paddings in explorer, 1 - classic paddings from win 7/8/10 etc.
   }
 
   # List of uwp apps that should be uninstalled, can be listed by `Get-AppxPackage -AllUsers | Select Name, PackageFullName`
   uwpUninstallList         = $(
     "Microsoft.People",
     "Microsoft.MicrosoftOfficeHub",
-    "Microsoft.MicrosoftSolitaireCollection",
-    "Microsoft.WindowsFeedbackHub",
-    "Microsoft.549981C3F5F10"
+    "Microsoft.MicrosoftSolitaireCollection"
   )
 
   # Custom symlinks
