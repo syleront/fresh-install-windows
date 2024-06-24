@@ -25,6 +25,7 @@ param (
   [switch]$uninstallOneDrive = $all, # uninstall OneDrive app and remove from explorer
   [switch]$uninstallUwpApps = $all, # uninstall uwp apps (from config)
   [switch]$custom = $all, # run custom.ps1
+  [string]$configPath = "./config.psd1", # config path
   [switch]$h
 )
 
@@ -33,8 +34,13 @@ if ($h) {
   return
 }
 
+if (-not (Test-Path $configPath)) {
+  Write-Warning "!!! Copy and paste config.example.psd1 as config.psd1 !!!"
+  return
+}
+
 $customScript = "./custom.ps1"
-$config = Import-PowerShellDataFile -Path .\config.psd1
+$config = Import-PowerShellDataFile -Path $configPath
 
 $folders = @{
   lib      = "./_lib"
