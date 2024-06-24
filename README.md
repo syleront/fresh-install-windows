@@ -78,3 +78,5 @@ You can configure the script for yourself by editing `config.psd1`
 * [sordum.org](https://www.sordum.org/9480/defender-control-v2-1/) - Defender Control
 * [7-zip.org](https://www.7-zip.org/download.html) - 7z.exe
 * [YoraiLevi](https://gist.github.com/YoraiLevi/0f333d520f502fdb1244cdf0524db6d2) - KnownFolderPath script
+* [Gravesoft](https://gravesoft.dev/) - Activation scripts & MS Office installation
+* [Techpowerup](https://www.techpowerup.com/download/visual-c-redistributable-runtime-package-all-in-one/) - Visual C++ Redistributable AIO
