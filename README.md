@@ -14,6 +14,12 @@ This script was created for personal use, and I take no responsibility for the r
 
 ## Usage
 
+Before using the script, enter the command to enable script execution:
+
+```powershell
+Set-ExecutionPolicy Bypass
+```
+
 Run it through powershell (or Windows Terminal which uses ps) like below:
 
 ```powershell
