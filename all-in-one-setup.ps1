@@ -51,7 +51,7 @@ $folders = @{
 }
 
 $packages = @{
-  _7z               = Join-Path $folders.packages "7z.exe"
+  _7z               = Join-Path $folders.packages "7za.exe"
   setDefaultBrowser = Join-Path $folders.packages "SetDefaultBrowser.exe"
   syspin            = Join-Path $folders.packages "syspin.exe"
   dControl          = Join-Path $folders.packages "so7036c.rar"
@@ -176,10 +176,18 @@ if ($wsl) {
 
 # == SSH server ==
 if ($ssh) {
+  # https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse?tabs=powershell
   Write-Output "Enable SSH server"
   Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
   Start-Service sshd
   Set-Service -Name sshd -StartupType 'Automatic'
+  if (!(Get-NetFirewallRule -Name "OpenSSH-Server-In-TCP" -ErrorAction SilentlyContinue | Select-Object Name, Enabled)) {
+    Write-Output "Firewall Rule 'OpenSSH-Server-In-TCP' does not exist, creating it..."
+    New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
+  }
+  else {
+    Write-Output "Firewall rule 'OpenSSH-Server-In-TCP' has been created and exists."
+  }
 }
 
 # == RDP ==

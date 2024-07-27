@@ -2,3 +2,4 @@ appdata/Roaming/**/*/
 appdata/Local/**/*/
 startup/*.lnk
 custom.ps1
+config.psd1
