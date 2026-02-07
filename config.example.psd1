@@ -1,7 +1,7 @@
 @{
   # Library folders that should be mapped 
   libraryFoldersTarget     = "D:/Libraries/" # Root directory for Libraries below
-  libraryFoldersListToMove = @("Downloads", "Documents", "Music", "Pictures", "Saved Games", "Videos")
+  libraryFoldersListToMove = @("Downloads", "Documents", "Music", "Pictures", "SavedGames", "Videos")
 
   # Paths you can change
   startupPath              = "./startup"

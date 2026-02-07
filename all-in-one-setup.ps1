@@ -24,6 +24,7 @@ param (
   [switch]$disableRecentsInExplorer = $all, # disable recent folders/docs/files in explorer
   [switch]$uninstallOneDrive = $all, # uninstall OneDrive app and remove from explorer
   [switch]$uninstallUwpApps = $all, # uninstall uwp apps (from config)
+  [switch]$intranet = $all,
   [switch]$custom = $all, # run custom.ps1
   [string]$configPath = "./config.psd1", # config path
   [switch]$h
@@ -43,15 +44,16 @@ $customScript = "./custom.ps1"
 $config = Import-PowerShellDataFile -Path $configPath
 
 $folders = @{
-  lib      = "./_lib"
-  packages = "./_packages"
-  temp     = "./tmp"
-  startup  = $config.startupPath
-  appdata  = $config.appdataPath
+  lib             = "./_lib"
+  packages        = "./_packages"
+  temp            = "./tmp"
+  startup         = $config.startupPath
+  appdata         = $config.appdataPath
+  appdataPrograms = $config.appdataProgramsPath
 }
 
 $packages = @{
-  _7z               = Join-Path $folders.packages "7za.exe"
+  _7z               = Join-Path $folders.packages "7z.exe"
   setDefaultBrowser = Join-Path $folders.packages "SetDefaultBrowser.exe"
   syspin            = Join-Path $folders.packages "syspin.exe"
   dControl          = Join-Path $folders.packages "so7036c.rar"
@@ -59,13 +61,14 @@ $packages = @{
 
 $urls = @{
   officeDeploymentTool = "https://officecdn.microsoft.com/pr/wsus/setup.exe"
-  windowsActScript     = "https://bitbucket.org/WindowsAddict/microsoft-activation-scripts/raw/master/MAS/Separate-Files-Version/Activators/HWID_Activation.cmd"
-  officeActScript      = "https://bitbucket.org/WindowsAddict/microsoft-activation-scripts/raw/master/MAS/Separate-Files-Version/Activators/Ohook_Activation_AIO.cmd"
+  windowsActScript     = "https://raw.githubusercontent.com/massgravel/Microsoft-Activation-Scripts/refs/heads/master/MAS/Separate-Files-Version/Activators/HWID_Activation.cmd"
+  officeActScript      = "https://raw.githubusercontent.com/massgravel/Microsoft-Activation-Scripts/refs/heads/master/MAS/Separate-Files-Version/Activators/Ohook_Activation_AIO.cmd"
 }
 
 Import-Module -Name (Join-Path $folders.lib "Get-VcRedist.ps1") -Force
 Import-Module -Name (Join-Path $folders.lib "KnownFolderPathPS5.ps1") -Force
 Import-Module -Name (Join-Path $folders.lib "Set-SymbolicLinksForFolders.ps1") -Force
+Import-Module -Name (Join-Path $folders.lib "Disable-ProgressReference.ps1") -Force
 
 # Remove old temp folder if exists & create again
 if (Test-Path $folders.temp) {
@@ -82,6 +85,10 @@ if ($moveLibraryFolders) {
   }
 }
 
+if ($all -or $installOther -or $installDevTools -or $installChocoExtras) {
+  winget source update
+}
+
 # == Install redists ==
 if ($installRedist) {
   Write-Output "Installing redists"
@@ -91,7 +98,12 @@ if ($installRedist) {
     $outFolder = Join-Path $folders.temp "vcredist"
     $installAllBat = Join-Path $outFolder "install_all.bat"
 
+    Write-Output "Downloading Visual C++ Redists..."
+
+    Disable-ProgressReference
     Get-VcRedist -OutFile $outFile
+    Restore-ProgressReference
+
     if (-Not (Test-Path $outFolder)) {
       New-Item -ItemType Directory -Path $outFolder > $null
     }
@@ -124,6 +136,7 @@ if ($installOther) {
 if ($installChocoExtras) {
   Write-Output "Installing extras from choco"
   winget install Chocolatey.Chocolatey
+  $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
   foreach ($package in $config.chocoPackages) {
     choco install $package -y
   }
@@ -209,10 +222,10 @@ if ($disableDefender) {
   else {
     Write-Output "Disabling the defender has been aborted."
   }
-  
+
   if ($agreement) {
     # Open defender settings if defender service is not stopped
-    if (-not (Get-Service -Name WinDefend).Status -eq "Stopped") {
+    if ((Get-Service -Name WinDefend).Status -eq "Running") {
       Start-Process -FilePath "cmd.exe" -ArgumentList "/c start windowsdefender:" -PassThru
       while (!(Get-MpPreference).DisableRealtimeMonitoring) {
         Start-Sleep -Seconds 1
@@ -246,6 +259,7 @@ if ($appdata) {
   Write-Output "Linking AppData folders"
   Set-SymbolicLinksForFolders -From (Join-Path $folders.appdata "Roaming") -To $env:APPDATA
   Set-SymbolicLinksForFolders -From (Join-Path $folders.appdata "Local") -To $env:LOCALAPPDATA
+  # Set-SymbolicLinksForFolders -From (Join-Path $folders.appdataPrograms) -To (Join-Path $env:LOCALAPPDATA "AppData/Local/Programs")
   Set-SymbolicLinksForFolders -From (Join-Path $folders.appdata "LocalLow") -To (Join-Path $env:USERPROFILE "AppData/LocalLow")
 }
 
@@ -265,7 +279,10 @@ if ($office) {
   if (Test-Path $config.officeConfigPath) {
     # Download office deployment tool
     $officeExe = Join-Path $folders.temp office.exe
+    
+    # Disable-ProgressReference
     Invoke-WebRequest -Uri $urls.officeDeploymentTool -OutFile $officeExe > $null
+    # Restore-ProgressReference
 
     # Bypass RU geoblock
     $registryPath = "HKCU:\Software\Microsoft\Office\16.0\Common\ExperimentConfigs\Ecs"
@@ -375,8 +392,69 @@ if ($customSymlinks) {
 
 # == Execute custom script ==
 if ($custom) {
-  Start-Process $customScript -Wait
+  Start-Process "powershell.exe" -ArgumentList "-File $customScript" -Wait
 }
+
+if ($intranet) {
+  function Get-IPv4NetworkAddress {
+    param(
+      [Parameter(Mandatory)] [string] $IPv4Address,
+      [Parameter(Mandatory)] [int]    $PrefixLength
+    )
+
+    $ipBytes = ([System.Net.IPAddress]::Parse($IPv4Address)).GetAddressBytes()
+    [Array]::Reverse($ipBytes)
+    $ip = [BitConverter]::ToUInt32($ipBytes, 0)
+
+    $mask = if ($PrefixLength -eq 0) { 0 } else { ([uint32]::MaxValue) -shl (32 - $PrefixLength) }
+    $net = $ip -band $mask
+
+    $netBytes = [BitConverter]::GetBytes($net)
+    [Array]::Reverse($netBytes)
+    ([System.Net.IPAddress]::new($netBytes)).ToString()
+  }
+
+  $defaultIfIndex = (Get-NetRoute -DestinationPrefix "0.0.0.0/0" |
+    Sort-Object -Property RouteMetric, IfMetric |
+    Select-Object -First 1).IfIndex
+
+  $addr = Get-NetIPAddress -AddressFamily IPv4 -Type Unicast -InterfaceIndex $defaultIfIndex |
+  Where-Object { $_.IPAddress -notlike "169.254.*" } |
+  Sort-Object -Property PrefixLength -Descending |
+  Select-Object -First 1
+
+  if (-not $addr) { throw "Can't find IPv4 address in the default route interface." }
+
+  $network = Get-IPv4NetworkAddress -IPv4Address $addr.IPAddress -PrefixLength $addr.PrefixLength
+
+  $octets = $network.Split('.')
+  $range =
+  switch ($addr.PrefixLength) {
+    { $_ -ge 24 } { "$($octets[0]).$($octets[1]).$($octets[2]).*" ; break }
+    { $_ -ge 16 } { "$($octets[0]).$($octets[1]).*.*"           ; break }
+    { $_ -ge 8 } { "$($octets[0]).*.*.*"                       ; break }
+    default { throw "PrefixLength $($addr.PrefixLength) is too wide for secure wildcard-range." }
+  }
+
+  $zoneRegistryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\Ranges"
+
+  if (-not (Test-Path $zoneRegistryPath)) { New-Item -Path $zoneRegistryPath -Force | Out-Null }
+
+  $existing = Get-ChildItem $zoneRegistryPath -ErrorAction SilentlyContinue
+  $maxN = ($existing.PSChildName |
+    Where-Object { $_ -match '^Range\d+$' } |
+    ForEach-Object { [int]($_ -replace '^Range', '') } |
+    Measure-Object -Maximum).Maximum
+  $nextRangeNumber = ([int]$maxN) + 1
+  $rangeKey = "Range$nextRangeNumber"
+
+  New-Item -Path "$zoneRegistryPath\$rangeKey" -Force | Out-Null
+  New-ItemProperty -Path "$zoneRegistryPath\$rangeKey" -Name ":Range" -Value $range -PropertyType String -Force | Out-Null
+  New-ItemProperty -Path "$zoneRegistryPath\$rangeKey" -Name "Zone"   -Value 1      -PropertyType DWord  -Force | Out-Null
+
+  Write-Host "Added to Local Intranet: $range (interface IfIndex=$defaultIfIndex, IP=$($addr.IPAddress)/$($addr.PrefixLength))"
+}
+
 
 # == Restart explorer if needed ==
 if ($disableNewContext -Or $disableRecentInExplorer -Or $setExplorerSettings) {
